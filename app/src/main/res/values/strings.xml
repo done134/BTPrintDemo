@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">BtPrintDemo</string>
+
+    <string name="none_paired">暂无配对设备</string>
+    <string name="scanning">正在扫码设备…</string>
+    <string name="select_device">选择一个设备连接</string>
+    <string name="none_found">未找到设备</string>
+    <string name="btnSearch">连接蓝牙打印机</string>
+    <string name="btnSend">打印</string>
+    <string name="btn_test">打印测试数据</string>
+    <string name="btnClose">Close</string>
+    <string name="txt_content">&quot;&quot;</string>
+    <string name="menu_settings">set</string>
+    <string name="strLang">en</string>
+    <string name="button_scan">扫码附近设备</string>
+</resources>
