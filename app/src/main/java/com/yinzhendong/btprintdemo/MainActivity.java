@@ -40,7 +40,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.main);
         mService = new BluetoothService(this, mHandler);
         //蓝牙不可用退出程序
-        if (mService.isAvailable() == false) {
+        if (!mService.isAvailable()) {
             Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
             finish();
         }
@@ -50,7 +50,7 @@ public class MainActivity extends Activity {
     public void onStart() {
         super.onStart();
         //蓝牙未打开，打开蓝牙
-        if (mService.isBTopen() == false) {
+        if (!mService.isBTopen()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         }
