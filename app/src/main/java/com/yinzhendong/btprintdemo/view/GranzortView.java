@@ -10,9 +10,9 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.graphics.RectF;
-import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
@@ -47,20 +47,24 @@ public class GranzortView extends View {
     private Animator.AnimatorListener animatorListener;
 
     private State mCurrentState = State.CIRCLE_STATE;
+
     //三个阶段的枚举
     private enum State {
         CIRCLE_STATE,
-        TRANGLE_STATE,
+        TRIANGLE_STATE,
         FINISH_STATE
     }
 
+
     public GranzortView(Context context) {
-        super(context);
+        this(context, null);
     }
-    public GranzortView(Context context, AttributeSet attrs) {
-        super(context, attrs);
+
+    public GranzortView(Context context, @Nullable AttributeSet attrs) {
+        this(context, attrs, 0);
     }
-    public GranzortView(Context context, AttributeSet attrs, int defStyleAttr) {
+
+    public GranzortView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
@@ -90,7 +94,7 @@ public class GranzortView extends View {
                 pathMeasure.getSegment(0, distance * pathMeasure.getLength(), drawPath, true);
                 canvas.drawPath(drawPath, paint);
                 break;
-            case TRANGLE_STATE:
+            case TRIANGLE_STATE:
                 canvas.drawPath(innerCircle, paint);
                 canvas.drawPath(outerCircle, paint);
                 drawPath.reset();
@@ -126,11 +130,75 @@ public class GranzortView extends View {
         initHandler();
         initAnimatorListener();
         initAnimator();
+        mCurrentState = State.CIRCLE_STATE;
+        valueAnimator.start();
     }
 
-    private void initAnimator() {
+
+    private void initPaint() {
+        paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.WHITE);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(10);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setStrokeJoin(Paint.Join.BEVEL);
+        paint.setShadowLayer(15, 0, 0, Color.WHITE);//白色光影效果
 
     }
+
+
+    private void initPath() {
+        innerCircle = new Path();
+        outerCircle = new Path();
+        trangle1 = new Path();
+        trangle2 = new Path();
+        drawPath = new Path();
+
+        pathMeasure = new PathMeasure();
+        RectF innerRect = new RectF(-220, -220, 220, 220);
+        RectF outerRect = new RectF(-280, -280, 280, 280);
+        innerCircle.addArc(innerRect, 150, -359.9f); // 不能取360f，否则可能造成测量到的值不准确
+        outerCircle.addArc(outerRect, 60, -359.9f);
+
+        pathMeasure.setPath(innerCircle, false);
+
+        float[] pos = new float[2];
+        pathMeasure.getPosTan(0, pos, null);
+        trangle1.moveTo(pos[0], pos[1]);
+        pathMeasure.getPosTan((1f / 3f) * pathMeasure.getLength(), pos, null);
+        Log.i(TAG, "pos : " + pos[0] + "  " + pos[1]);
+        trangle1.lineTo(pos[0], pos[1]);
+
+        pathMeasure.getPosTan((2f / 3f) * pathMeasure.getLength(), pos, null);
+        trangle1.lineTo(pos[0], pos[1]);
+        trangle1.close();
+
+        pathMeasure.getPosTan((2f / 3f) * pathMeasure.getLength(), pos, null);
+        Matrix matrix = new Matrix();
+        matrix.postRotate(-180);
+        trangle1.transform(matrix, trangle2);
+
+    }
+
+
+    private void initHandler() {
+        mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                switch (mCurrentState) {
+                    case CIRCLE_STATE:
+                        mCurrentState = State.TRIANGLE_STATE;
+                        valueAnimator.start();
+                        break;
+                    case TRIANGLE_STATE:
+                        mCurrentState = State.FINISH_STATE;
+                        valueAnimator.start();
+                        break;
+                }
+            }
+        };
+    }
+
 
     private void initAnimatorListener() {
         animatorUpdateListener = new ValueAnimator.AnimatorUpdateListener() {
@@ -164,65 +232,11 @@ public class GranzortView extends View {
         };
     }
 
-    private void initHandler() {
-        mHandler = new Handler(){
-            @Override
-            public void handleMessage(Message msg) {
-                switch (mCurrentState) {
-                    case CIRCLE_STATE:
-                        mCurrentState = State.TRANGLE_STATE;
-                        valueAnimator.start();
-                        break;
-                    case TRANGLE_STATE:
-                        mCurrentState = State.FINISH_STATE;
-                        valueAnimator.start();
-                        break;
-                }
-            }
-        };
+
+    private void initAnimator() {
+        valueAnimator = ValueAnimator.ofFloat(0, 1).setDuration(duration);
+        valueAnimator.addUpdateListener(animatorUpdateListener);
+        valueAnimator.addListener(animatorListener);
     }
 
-    private void initPath() {
-        innerCircle = new Path();
-        outerCircle = new Path();
-        trangle1 = new Path();
-        trangle2 = new Path();
-        drawPath = new Path();
-
-        pathMeasure = new PathMeasure();
-        RectF innerRect = new RectF(-220, -220, 220, 220);
-        RectF outerRect = new RectF(-280, -280, 280, 280);
-        innerCircle.addArc(innerRect, 150, -259.9f); // 不能取360f，否则可能造成测量到的值不准确
-        outerCircle.addArc(outerRect, 50, -359.9f);
-
-        pathMeasure.setPath(innerCircle, false);
-
-        float[] pos = new float[2];
-        pathMeasure.getPosTan(0, pos, null);
-        trangle1.moveTo(pos[0], pos[1]);
-        pathMeasure.getPosTan((1f / 3f) * pathMeasure.getLength(), pos, null);
-        Log.i(TAG, "pos : " + pos[0] + "  " + pos[1]);
-        trangle1.lineTo(pos[0], pos[1]);
-
-        pathMeasure.getPosTan((2f / 3f) * pathMeasure.getLength(), pos, null);
-        trangle1.lineTo(pos[0], pos[1]);
-        trangle1.close();
-
-        pathMeasure.getPosTan((2f / 3f) * pathMeasure.getLength(), pos, null);
-        Matrix matrix = new Matrix();
-        matrix.postRotate(-180);
-        trangle1.transform(matrix, trangle2);
-
-    }
-
-    private void initPaint() {
-        paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(Color.WHITE);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(10);
-        paint.setStrokeCap(Paint.Cap.ROUND);
-        paint.setStrokeJoin(Paint.Join.BEVEL);
-        paint.setShadowLayer(15, 0, 0, Color.WHITE);//白色光影效果
-
-    }
 }
